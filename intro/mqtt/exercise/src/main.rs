@@ -11,8 +11,8 @@ use esp_idf_svc::{
     },
     mqtt::client::{Details, EspMqttClient, MqttClientConfiguration},
 };
-use log::{error, info, warn};
-use mqtt_messages::{hello_topic, temperature_data_topic, ColorData};
+use log::{error, info};
+use mqtt_messages::{color_topic, hello_topic, temperature_data_topic, ColorData};
 use rgb_led::{RGB8, WS2812RMT};
 use shtcx::{self, shtc3, PowerMode};
 use std::{convert::TryFrom, thread::sleep, time::Duration};
@@ -78,13 +78,20 @@ fn main() -> Result<()> {
 
     let mqtt_config = MqttClientConfiguration::default();
 
-    let mut client = EspMqttClient::new_cb(&broker_url, &mqtt_config, |_| {})?;
+    let mut client = EspMqttClient::new_cb(&broker_url, &mqtt_config, move |event| {
+        match event.payload() {
+            Received { data, details, .. } => process_message(data, details, &mut led),
+            Error(err) => error!("Received error from MQTT: {:?}", err),
+            _ => info!("Received form MQTT: {:?}", event.payload()),
+        }
+    })?;
     client.publish(
         &hello_topic(UUID),
         QoS::ExactlyOnce,
         false,
         "hello, world!".as_bytes(),
     )?;
+    client.subscribe(&color_topic(UUID), QoS::ExactlyOnce)?;
 
     loop {
         sleep(Duration::from_secs(1));
@@ -99,5 +106,17 @@ fn main() -> Result<()> {
             false,
             &temp.to_be_bytes(),
         )?;
+    }
+}
+
+fn process_message(data: &[u8], details: Details, led: &mut WS2812RMT) {
+    if details == Complete {
+        info!("data: {:?}", data);
+        if let Ok(ColorData::BoardLed(color)) = ColorData::try_from(data) {
+            info!("color: {:?}", color);
+            if let Err(err) = led.set_pixel(color) {
+                error!("Could not set board LED: {:?}", err);
+            }
+        }
     }
 }
