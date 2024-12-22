@@ -54,6 +54,7 @@ impl Command {
 pub enum ColorData {
     BoardLed(RGB8),
 }
+
 impl ColorData {
     pub fn topic(&self, uuid: &str) -> String {
         match self {
@@ -66,6 +67,7 @@ impl ColorData {
         }
     }
 }
+
 #[derive(Debug)]
 pub struct RawCommandData<'a> {
     pub path: &'a str,

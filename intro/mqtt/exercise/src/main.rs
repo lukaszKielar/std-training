@@ -15,7 +15,7 @@ use log::{error, info};
 use mqtt_messages::{color_topic, hello_topic, temperature_data_topic, ColorData};
 use rgb_led::{RGB8, WS2812RMT};
 use shtcx::{self, shtc3, PowerMode};
-use std::{convert::TryFrom, thread::sleep, time::Duration};
+use std::{thread::sleep, time::Duration};
 use wifi::wifi;
 
 const UUID: &str = get_uuid::uuid();
@@ -112,7 +112,7 @@ fn main() -> Result<()> {
 fn process_message(data: &[u8], details: Details, led: &mut WS2812RMT) {
     if details == Complete {
         info!("data: {:?}", data);
-        if let Ok(ColorData::BoardLed(color)) = ColorData::try_from(data) {
+        if let Ok(ColorData::BoardLed(color)) = data.try_into() {
             info!("color: {:?}", color);
             if let Err(err) = led.set_pixel(color) {
                 error!("Could not set board LED: {:?}", err);
