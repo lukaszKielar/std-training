@@ -1,4 +1,4 @@
-use anyhow::Result;
+use anyhow::{Error, Ok, Result};
 use core::str;
 use embedded_svc::{http::Method, io::Write};
 use esp_idf_svc::{
@@ -19,7 +19,7 @@ use wifi::wifi;
 
 #[toml_cfg::toml_config]
 pub struct Config {
-    #[default("")]
+    #[default("Wokwi-GUEST")]
     wifi_ssid: &'static str,
     #[default("")]
     wifi_psk: &'static str,
@@ -49,21 +49,42 @@ fn main() -> Result<()> {
     let i2c = peripherals.i2c0;
     let config = I2cConfig::new().baudrate(100.kHz().into());
     let i2c = I2cDriver::new(i2c, sda, scl, &config)?;
-    let temp_sensor_main = Arc::new(Mutex::new(shtc3(i2c)));
-    let mut temp_sensor = temp_sensor_main.clone();
-    temp_sensor
-        .lock()
-        .unwrap()
-        .start_measurement(PowerMode::NormalMode)
-        .unwrap();
+    let temp_sensor = Arc::new(Mutex::new(shtc3(i2c)));
+    {
+        let temp_sensor = temp_sensor.clone();
+        temp_sensor
+            .lock()
+            .unwrap()
+            .start_temperature_measurement(PowerMode::NormalMode)
+            .map_err(|err| {
+                Error::msg(format!(
+                    "Cannot initialise temperature measurement: {:?}",
+                    err
+                ))
+            })?;
+    }
 
-    // 1.Create a `EspHttpServer` instance using a default configuration
-    // let mut server = EspHttpServer::new(...)?;
+    let mut server = EspHttpServer::new(&Configuration::default())?;
 
-    // 2. Write a handler that returns the index page
-    // server.fn_handler("/", Method::Get, |request| {
-    // ...
-    //})?;
+    server.fn_handler("/", Method::Get, |request| {
+        let mut response = request.into_ok_response()?;
+        let html = index_html();
+        response.write_all(html.as_bytes())?;
+        Ok(())
+    })?;
+
+    server.fn_handler("/temperature", Method::Get, move |request| {
+        let temp = temp_sensor
+            .lock()
+            .unwrap()
+            .get_temperature_measurement_result()
+            .map_err(|err| Error::msg(format!("Cannot get temperature measurement: {:?}", err)))?
+            .as_degrees_celsius();
+        let mut response = request.into_ok_response()?;
+        let html = temperature(temp);
+        response.write_all(html.as_bytes())?;
+        Ok(())
+    })?;
 
     // This is not true until you actually create one
     println!("Server awaiting connection");
