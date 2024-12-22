@@ -12,7 +12,7 @@ use esp_idf_svc::{
     mqtt::client::{Details, EspMqttClient, MqttClientConfiguration},
 };
 use log::{error, info, warn};
-use mqtt_messages::{hello_topic, ColorData};
+use mqtt_messages::{hello_topic, temperature_data_topic, ColorData};
 use rgb_led::{RGB8, WS2812RMT};
 use shtcx::{self, shtc3, PowerMode};
 use std::{convert::TryFrom, thread::sleep, time::Duration};
@@ -22,7 +22,7 @@ const UUID: &str = get_uuid::uuid();
 
 #[toml_cfg::toml_config]
 pub struct Config {
-    #[default("localhost")]
+    #[default("")]
     mqtt_host: &'static str,
     #[default("")]
     mqtt_user: &'static str,
@@ -52,8 +52,7 @@ fn main() -> Result<()> {
         sysloop,
     )?;
 
-    info!("Our UUID is:");
-    info!("{}", UUID);
+    info!("Our UUID is: {}", UUID);
 
     let pins = peripherals.pins;
     let sda = pins.gpio10;
@@ -68,7 +67,7 @@ fn main() -> Result<()> {
     led.set_pixel(RGB8::new(1, 1, 0))?;
 
     // Client configuration:
-    let broker_url = if app_config.mqtt_user != "" {
+    let broker_url = if !app_config.mqtt_user.is_empty() {
         format!(
             "mqtt://{}:{}@{}",
             app_config.mqtt_user, app_config.mqtt_pass, app_config.mqtt_host
@@ -79,12 +78,13 @@ fn main() -> Result<()> {
 
     let mqtt_config = MqttClientConfiguration::default();
 
-    // Your Code:
-
-    // 1. Create a client with default configuration and empty handler
-    // let mut client = EspMqttClient::new_cb( ... )?;
-
-    // 2. publish an empty hello message
+    let mut client = EspMqttClient::new_cb(&broker_url, &mqtt_config, |_| {})?;
+    client.publish(
+        &hello_topic(UUID),
+        QoS::ExactlyOnce,
+        false,
+        "hello, world!".as_bytes(),
+    )?;
 
     loop {
         sleep(Duration::from_secs(1));
@@ -93,7 +93,11 @@ fn main() -> Result<()> {
             .unwrap()
             .as_degrees_celsius();
 
-        // 3. publish CPU temperature
-        // client.publish( ... )?;
+        client.publish(
+            &temperature_data_topic(UUID),
+            QoS::ExactlyOnce,
+            false,
+            &temp.to_be_bytes(),
+        )?;
     }
 }

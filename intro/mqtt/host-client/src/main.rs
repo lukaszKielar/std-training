@@ -1,14 +1,14 @@
 use mqtt_messages::{hello_topic, temperature_data_topic, ColorData, RGB8};
 use rand::Rng;
-use rumqttc::{Client, MqttOptions, Packet, QoS};
+use rumqttc::{Client, Event, MqttOptions, Packet, QoS};
 use std::{error::Error, thread, time::Duration};
 
-const UUID: &'static str = get_uuid::uuid();
+const UUID: &str = get_uuid::uuid();
 
 #[derive(Debug)]
 #[toml_cfg::toml_config]
 pub struct Config {
-    #[default("localhost")]
+    #[default("")]
     mqtt_host: &'static str,
     #[default("")]
     mqtt_user: &'static str,
@@ -17,18 +17,17 @@ pub struct Config {
 }
 
 fn main() -> Result<(), Box<dyn Error>> {
-    dbg!(CONFIG);
-    let client_id = UUID;
     dbg!(UUID);
-    let mut mqttoptions = MqttOptions::new(client_id, CONFIG.mqtt_host, 1883);
-    mqttoptions.set_credentials(CONFIG.mqtt_user, CONFIG.mqtt_pass);
 
+    let mut mqttoptions = MqttOptions::new(UUID, CONFIG.mqtt_host, 1883);
+    mqttoptions.set_credentials(CONFIG.mqtt_user, CONFIG.mqtt_pass);
     mqttoptions.set_keep_alive(Duration::from_secs(5));
 
-    let (mut client, mut connection) = Client::new(mqttoptions, 10);
+    let (client, mut connection) = Client::new(mqttoptions, 10);
 
     client.subscribe(temperature_data_topic(UUID), QoS::AtMostOnce)?;
     client.subscribe(hello_topic(UUID), QoS::AtMostOnce)?;
+
     thread::spawn(move || {
         let mut rng = rand::thread_rng();
         loop {
@@ -46,11 +45,11 @@ fn main() -> Result<(), Box<dyn Error>> {
     });
 
     // Iterate to poll the eventloop for connection progress
-    for (_, notification) in connection.iter().enumerate() {
+    for notification in connection.iter().flatten() {
         // if you want to see *everything*, uncomment:
         // println!("Notification = {:#?}", notification);
 
-        if let Ok(rumqttc::Event::Incoming(Packet::Publish(publish_data))) = notification {
+        if let Event::Incoming(Packet::Publish(publish_data)) = notification {
             if publish_data.topic == hello_topic(UUID) {
                 println!("Board says hi!");
             }
