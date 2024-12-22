@@ -5,6 +5,7 @@ use esp_idf_svc::{
     eventloop::EspSystemEventLoop,
     hal::prelude::Peripherals,
     http::client::{Configuration, EspHttpConnection},
+    sys::esp_crt_bundle_attach,
 };
 use wifi::wifi;
 
@@ -34,14 +35,19 @@ fn main() -> Result<()> {
         sysloop,
     )?;
 
-    get("http://neverssl.com/")?;
+    // get("http://neverssl.com/")?;
+    get("https://docs.rs/")?;
 
     Ok(())
 }
 
 fn get(url: impl AsRef<str>) -> Result<()> {
     // 1. Create a new EspHttpConnection with default Configuration. (Check documentation)
-    let connection = EspHttpConnection::new(&Configuration::default())?;
+    let connection = EspHttpConnection::new(&Configuration {
+        use_global_ca_store: true,
+        crt_bundle_attach: Some(esp_crt_bundle_attach),
+        ..Default::default()
+    })?;
 
     // 2. Get a client using the embedded_svc Client::wrap method. (Check documentation)
     let mut client = Client::wrap(connection);
