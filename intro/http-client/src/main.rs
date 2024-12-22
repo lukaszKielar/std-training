@@ -1,9 +1,6 @@
 use anyhow::{bail, Result};
 use core::str;
-use embedded_svc::{
-    http::{client::Client, Method},
-    io::Read,
-};
+use embedded_svc::http::{client::Client, Method};
 use esp_idf_svc::{
     eventloop::EspSystemEventLoop,
     hal::prelude::Peripherals,
@@ -44,23 +41,56 @@ fn main() -> Result<()> {
 
 fn get(url: impl AsRef<str>) -> Result<()> {
     // 1. Create a new EspHttpConnection with default Configuration. (Check documentation)
+    let connection = EspHttpConnection::new(&Configuration::default())?;
 
     // 2. Get a client using the embedded_svc Client::wrap method. (Check documentation)
+    let mut client = Client::wrap(connection);
 
     // 3. Open a GET request to `url`
     let headers = [("accept", "text/plain")];
+    let request = client.request(Method::Get, url.as_ref(), &headers)?;
 
     // 4. Submit the request and check the status code of the response.
-    // let response = request...;
-    // let status = ...;
-    // println!("Response code: {}\n", status);
-    // match status {
-    // Successful http status codes are in the 200..=299 range.
+    let mut response = request.submit()?;
+    let status = response.status();
 
     // 5. If the status is OK, read response data chunk by chunk into a buffer and print it until done.
+    match status {
+        200..=200 => println!("Successful response: {status}"),
+        _ => bail!("Error response: {status}"),
+    }
+
+    let mut buf = [0_u8; 128];
+    let mut offset = 0;
+    let mut total = 0;
 
     // 6. Try converting the bytes into a Rust (UTF-8) string and print it.
-    // }
+    loop {
+        if let Ok(size) = response.read(&mut buf[offset..]) {
+            if size == 0 {
+                break;
+            }
+            total += size;
+
+            let size_plus_offset = size + offset;
+            match str::from_utf8(&buf[..size_plus_offset]) {
+                Ok(text) => {
+                    print!("{}", text);
+                    offset = 0;
+                }
+                Err(error) => {
+                    let valid_up_to = error.valid_up_to();
+                    // SAFETY: it's definitely valid up to size
+                    unsafe {
+                        print!("{}", str::from_utf8_unchecked(&buf[..valid_up_to]));
+                    }
+                    buf.copy_within(valid_up_to.., 0);
+                    offset = size_plus_offset - valid_up_to;
+                }
+            }
+        }
+    }
+    println!("Total: {total} bytes");
 
     Ok(())
 }
