@@ -2,13 +2,13 @@
   "name": "espressif-training",
   // Comment the image and use the build property to build the image from the
   // Dockerfile instead of downloading it from https://hub.docker.com/r/espressif/rust-std-training
-  "image": "docker.io/espressif/rust-std-training",
-  // "build": {
-  //   "dockerfile": "Dockerfile",
-  //   "args": {
-  //     "NIGHTLY_VERSION": "nightly-2024-06-30"
-  //   }
-  // },
+  // "image": "docker.io/espressif/rust-std-training",
+  "build": {
+    "dockerfile": "Dockerfile",
+    "args": {
+      "NIGHTLY_VERSION": "nightly-2024-06-30"
+    }
+  },
   "customizations": {
     "vscode": {
       "settings": {
