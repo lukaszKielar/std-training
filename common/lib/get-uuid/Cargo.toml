@@ -8,8 +8,8 @@ authors = [
 edition = "2021"
 
 [dependencies]
-anyhow = "=1.0.94"
+anyhow = "=1.0.95"
 
 [build-dependencies]
-anyhow = "=1.0.94"
+anyhow = "=1.0.95"
 uuid   = { version = "=1.11.0", features = ["v4"] }

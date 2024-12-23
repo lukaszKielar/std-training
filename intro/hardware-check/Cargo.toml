@@ -10,17 +10,19 @@ resolver = "2"
 
 [[bin]]
 name = "hardware-check"
-harness = false # We can't use the default rust libtest harness for a crosscompile target
+# We can't use the default rust libtest harness for a crosscompile target
+harness = false
 
 [profile.release]
 opt-level = "s"
 
 [profile.dev]
-debug     = true # Symbols are nice and they don't increase the size on Flash
+# Symbols are nice and they don't increase the size on Flash
+debug     = true
 opt-level = "z"
 
 [dependencies]
-anyhow      = "=1.0.94"
+anyhow      = "=1.0.95"
 esp-idf-svc = "=0.49.1"
 log         = "=0.4.22"
 rgb-led     = { path = "../../common/lib/rgb-led" }
@@ -28,5 +30,6 @@ toml-cfg    = "=0.2.0"
 wifi        = { path = "../../common/lib/wifi" }
 
 [build-dependencies]
-embuild  = "=0.32.0"
-cc       = "=1.1.31" # Workaround for https://github.com/esp-rs/std-training/issues/266
+embuild = "=0.32.0"
+# Workaround for https://github.com/esp-rs/std-training/issues/266
+cc = "=1.1.31"
