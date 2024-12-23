@@ -1,5 +1,5 @@
 use anyhow::Result;
-use embedded_hal::blocking::delay::DelayMs;
+use embedded_hal::delay::DelayNs;
 use esp_idf_svc::hal::{
     delay::FreeRtos,
     i2c::{I2cConfig, I2cDriver},
@@ -9,9 +9,9 @@ use esp_idf_svc::hal::{
 // ANCHOR: include
 use icm42670::{Address, Icm42670, PowerMode as imuPowerMode};
 // ANCHOR_END: include
-// ANCHOR: shared_bus
-use shared_bus::BusManagerSimple;
-// ANCHOR_END: shared_bus
+// ANCHOR: embedded_hal_bus
+use embedded_hal_bus::{i2c::AtomicDevice, util::AtomicCell};
+// ANCHOR_END: embedded_hal_bus
 use shtcx::{self, PowerMode as shtPowerMode};
 
 // Goals of this exercise:
@@ -32,11 +32,11 @@ fn main() -> Result<()> {
     let i2c = I2cDriver::new(peripherals.i2c0, sda, scl, &config)?;
 
     // 3. Instantiate the bus manager, pass the i2c bus.
-    let bus = BusManagerSimple::new(i2c);
+    let bus = AtomicCell::new(i2c);
 
     // 4. Create two proxies. Now, each sensor can have their own instance of a proxy i2c, which resolves the ownership problem.
-    let proxy_1 = bus.acquire_i2c();
-    let proxy_2 = bus.acquire_i2c();
+    let proxy_1 = AtomicDevice::new(&bus);
+    let proxy_2 = AtomicDevice::new(&bus);
 
     // 5. Change your previous code, so that one of the proxies is passed to the SHTC3, instead of the original i2c bus.
     let mut sht = shtcx::shtc3(proxy_1);
