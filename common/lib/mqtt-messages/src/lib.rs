@@ -112,7 +112,7 @@ impl<'a> TryFrom<RawCommandData<'a>> for Command {
 /// Handles `.data()` from EspMqttMessage
 ///
 // The message is a slice containing 3 values, and is cast into a ColorData(rgb)
-impl<'a> TryFrom<&[u8]> for ColorData {
+impl TryFrom<&[u8]> for ColorData {
     type Error = ConvertError;
 
     fn try_from(message: &[u8]) -> Result<Self, Self::Error> {

@@ -116,18 +116,15 @@ fn main() -> Result<()> {
 
 // ANCHOR: process_message
 fn process_message(data: &[u8], details: Details, led: &mut WS2812RMT) {
-    match details {
-        Complete => {
-            info!("{:?}", data);
-            let message_data: &[u8] = data;
-            if let Ok(ColorData::BoardLed(color)) = ColorData::try_from(message_data) {
-                info!("{}", color);
-                if let Err(e) = led.set_pixel(color) {
-                    error!("Could not set board LED: {:?}", e)
-                };
-            }
+    if details == Complete {
+        info!("{:?}", data);
+        let message_data: &[u8] = data;
+        if let Ok(ColorData::BoardLed(color)) = ColorData::try_from(message_data) {
+            info!("{}", color);
+            if let Err(e) = led.set_pixel(color) {
+                error!("Could not set board LED: {:?}", e)
+            };
         }
-        _ => {}
     }
 }
 // ANCHOR_END: process_message

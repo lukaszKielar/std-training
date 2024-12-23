@@ -1,7 +1,5 @@
 use anyhow::Result;
-use embedded_svc::mqtt::client::{
-    Details::Complete, EventPayload::Error, EventPayload::Received, QoS,
-};
+use embedded_svc::mqtt::client::QoS;
 use esp_idf_svc::{
     eventloop::EspSystemEventLoop,
     hal::{
@@ -9,7 +7,7 @@ use esp_idf_svc::{
         i2c::{I2cConfig, I2cDriver},
         prelude::*,
     },
-    mqtt::client::{Details, EspMqttClient, MqttClientConfiguration},
+    mqtt::client::{EspMqttClient, MqttClientConfiguration},
 };
 use log::info;
 use mqtt_messages::hello_topic;
