@@ -96,8 +96,7 @@ impl<'a> TryFrom<RawCommandData<'a>> for Command {
     type Error = ConvertError;
 
     fn try_from(value: RawCommandData) -> Result<Self, Self::Error> {
-        //if value.path == Command::BOARD_LED {
-        if value.path == "" {
+        if value.path == Command::BOARD_LED {
             let data: &[u8] = value.data.borrow();
             let data: [u8; 3] = data
                 .try_into()
