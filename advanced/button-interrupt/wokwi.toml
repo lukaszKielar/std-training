@@ -2,7 +2,7 @@
 version = 1
 # Exercise
 firmware = "target/riscv32imc-esp-espidf/debug/examples/solution"
-elf = 'target/riscv32imc-esp-espidf/debug/button-interrupt'
+elf      = 'target/riscv32imc-esp-espidf/debug/button-interrupt'
 
 # Solution
 # firmware = 'target/riscv32imc-esp-espidf/debug/examples/solution'
