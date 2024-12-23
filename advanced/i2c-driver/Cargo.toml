@@ -28,3 +28,5 @@ esp-idf-svc  = "=0.49.1"
 
 [build-dependencies]
 embuild = "=0.32.0"
+# Workaround for https://github.com/esp-rs/std-training/issues/266
+cc = "=1.1.31"

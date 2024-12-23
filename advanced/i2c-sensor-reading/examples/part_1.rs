@@ -1,5 +1,5 @@
 use anyhow::Result;
-use embedded_hal::blocking::delay::DelayMs;
+use embedded_hal::delay::DelayNs as _;
 use esp_idf_svc::hal::{
     delay::FreeRtos,
     i2c::{I2cConfig, I2cDriver},

@@ -1,16 +1,23 @@
-use anyhow::Result;
-use embedded_hal::blocking::delay::DelayMs;
+use embedded_hal::delay::DelayNs as _;
 use esp_idf_svc::hal::{
     delay::FreeRtos,
     i2c::{I2cConfig, I2cDriver},
     peripherals::Peripherals,
     prelude::*,
 };
-use shtcx::{self, PowerMode};
+use shtcx::{self, shtc3, PowerMode};
+
+#[derive(Debug)]
+enum Error {
+    I2cDriverInit,
+    Sthc3Start,
+    Sthc3UnreadableID,
+    Sthc3Measurement,
+}
+
+type Result<T> = ::core::result::Result<T, Error>;
 
 // Goals of this exercise:
-// - Part1: Instantiate i2c peripheral
-// - Part1: Implement one sensor, print sensor values
 // - Part2: Implement second sensor on same bus to solve an ownership problem
 
 fn main() -> Result<()> {
@@ -18,16 +25,36 @@ fn main() -> Result<()> {
 
     let peripherals = Peripherals::take().unwrap();
 
-    // 1. Instantiate the SDA and SCL pins, correct pins are in the training material.
+    let sda = peripherals.pins.gpio10;
+    let scl = peripherals.pins.gpio8;
 
-    // 2. Instantiate the i2c peripheral,I2cDriver, using a I2cConfig of 400kHz
+    let config = I2cConfig::new().baudrate(400.kHz().into());
+    let i2c =
+        I2cDriver::new(peripherals.i2c0, sda, scl, &config).map_err(|_| Error::I2cDriverInit)?;
 
-    // 3. Create an instance of the SHTC3 sensor.
+    let mut sthc3 = shtc3(i2c);
 
-    // 4. Read and print the sensor's device ID.
+    let sthc3_id = sthc3
+        .device_identifier()
+        .map_err(|_| Error::Sthc3UnreadableID)?;
+    println!("Device ID SHTC3: {sthc3_id} [{:#X}]", sthc3_id);
 
     loop {
-        // 5. This loop initiates measurements, reads values and prints humidity in % and Temperature in °C.
+        sthc3
+            .start_measurement(PowerMode::NormalMode)
+            .map_err(|_| Error::Sthc3Start)?;
+
+        let measurement = sthc3
+            .get_measurement_result()
+            .map_err(|_| Error::Sthc3Measurement)?;
+        FreeRtos.delay_ms(100u32);
+
+        println!(
+            "TEMP: {} °C | HUM: {} %",
+            measurement.temperature.as_degrees_celsius(),
+            measurement.humidity.as_percent()
+        );
+
         FreeRtos.delay_ms(500u32);
     }
 }
