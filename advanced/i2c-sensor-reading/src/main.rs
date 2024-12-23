@@ -22,9 +22,6 @@ enum Error {
 
 type Result<T> = ::core::result::Result<T, Error>;
 
-// Goals of this exercise:
-// - Part2: Implement second sensor on same bus to solve an ownership problem
-
 fn main() -> Result<()> {
     esp_idf_svc::sys::link_patches();
 
@@ -42,17 +39,22 @@ fn main() -> Result<()> {
     let sthc3_id = sthc3
         .device_identifier()
         .map_err(|_| Error::Sthc3UnreadableID)?;
+    println!("Device ID SHTC3: {sthc3_id} [{:#02X}]", sthc3_id);
 
     let mut icm42670 = Icm42670::new(AtomicDevice::new(&i2c_cell), icm42670::Address::Primary)
         .map_err(|_| Error::Icm42670Start)?;
     let icm42670_id = icm42670
         .device_id()
         .map_err(|_| Error::Icm42670UnreadableID)?;
-
-    println!("Device ID SHTC3: {sthc3_id} [{:#02X}]", sthc3_id);
     println!("Device ID ICM42670p: {icm42670_id} [{:#02X}]", icm42670_id);
 
     loop {
+        let gyro_data = icm42670.gyro_norm().map_err(|_| Error::Icm42670GyroNorm)?;
+        println!(
+            "GYRO: X: {:.2} Y: {:.2} Z: {:.2}",
+            gyro_data.x, gyro_data.y, gyro_data.z
+        );
+
         sthc3
             .start_measurement(PowerMode::NormalMode)
             .map_err(|_| Error::Sthc3Start)?;
@@ -61,13 +63,6 @@ fn main() -> Result<()> {
         let sthc3_measurement = sthc3
             .get_measurement_result()
             .map_err(|_| Error::Sthc3Measurement)?;
-
-        let icm42670_gyro_norm = icm42670.gyro_norm().map_err(|_| Error::Icm42670GyroNorm)?;
-
-        println!(
-            "GYRO: X: {:.2} Y: {:.2} Z: {:.2}",
-            icm42670_gyro_norm.x, icm42670_gyro_norm.y, icm42670_gyro_norm.z
-        );
         println!(
             "TEMP: {:.2} °C",
             sthc3_measurement.temperature.as_degrees_celsius(),
