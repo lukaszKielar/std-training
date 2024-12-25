@@ -1,5 +1,5 @@
 use anyhow::Result;
-use embedded_hal::blocking::delay::DelayMs;
+use embedded_hal::delay::DelayNs;
 use esp_idf_svc::hal::{
     delay::FreeRtos,
     i2c::{I2cConfig, I2cDriver},
@@ -7,13 +7,7 @@ use esp_idf_svc::hal::{
     prelude::*,
 };
 
-// Uncomment the following line to run the solution, check lib.rs for further instructions
-use i2c_driver::icm42670p_solution::{DeviceAddr, ICM42670P};
-
-// Comment out the following line to run the solution, check lib.rs for further instructions
-// use i2c_driver::icm42670p::{DeviceAddr, ICM42670P};
-
-// Dont change this file. Work in the icm42670p.rs and modify it so main.rs runs.
+use i2c_driver::icm42670p::{DeviceAddr, ICM42670P};
 
 fn main() -> Result<()> {
     esp_idf_svc::sys::link_patches();
